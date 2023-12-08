@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - lexilla
+      - .github/workflows/build-lexilla.yml
 
 jobs:
   build:
