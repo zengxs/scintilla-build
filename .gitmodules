@@ -1,3 +1,6 @@
-[submodule "Scintilla"]
-	path = Scintilla
+[submodule "scintilla"]
+	path = scintilla
 	url = https://github.com/zengxs/scintilla-code.git
+[submodule "lexilla"]
+	path = lexilla
+	url = https://github.com/ScintillaOrg/lexilla.git
