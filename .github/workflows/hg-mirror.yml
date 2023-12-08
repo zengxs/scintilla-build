@@ -3,6 +3,9 @@ name: hg-mirror
 on:
   schedule:
     - cron: "45 12 * * *"
+  push:
+    paths:
+      - .github/workflows/hg-mirror.yml
 
 jobs:
   build:
