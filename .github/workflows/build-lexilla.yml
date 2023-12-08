@@ -1,0 +1,35 @@
+name: build-lexilla
+
+on:
+  push:
+    paths:
+      - lexilla
+
+jobs:
+  build:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Xcode Select
+        run: |
+          sudo xcode-select -switch /Applications/Xcode_15.0.1.app
+          echo "Xcode Version: $(xcodebuild -version)"
+
+      - name: Build Lexilla
+        working-directory: lexilla/src/Lexilla
+        run: |
+          xcodebuild archive -scheme lexilla -configuration Release -destination "generic/platform=macOS" -archivePath "archives/lexilla" SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES DEVELOPMENT_TEAM=""
+
+      - name: Tar Lexilla
+        working-directory: lexilla/src/Lexilla/archives/lexilla.xcarchive/Products/Library/Frameworks
+        run: |
+          tar -cvzf lexilla.tar.gz lexilla.framework
+
+      - name: Upload Lexilla
+        uses: actions/upload-artifact@v2
+        with:
+          name: lexilla
+          path: lexilla/src/Lexilla/archives/lexilla.xcarchive/Products/Library/Frameworks/lexilla.tar.gz
