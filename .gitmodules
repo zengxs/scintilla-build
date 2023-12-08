@@ -1,0 +1,3 @@
+[submodule "Scintilla"]
+	path = Scintilla
+	url = https://github.com/zengxs/scintilla-code.git
