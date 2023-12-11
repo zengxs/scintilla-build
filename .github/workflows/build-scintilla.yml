@@ -1,0 +1,54 @@
+name: build-scintilla
+
+on:
+  push:
+    paths:
+      - scintilla
+      - .github/workflows/build-scintilla.yml
+
+jobs:
+  build:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Xcode Select
+        run: |
+          # find latest Xcode
+          XCODE_PATH=$(find /Applications -maxdepth 1 -type d -name 'Xcode*' | sort -r | head -n 1)
+          echo "Xcode Path: $XCODE_PATH"
+          # set Xcode version
+          sudo xcode-select -switch "$XCODE_PATH"
+          echo "Xcode Version: $(xcodebuild -version)"
+          # make build directory
+          mkdir build
+
+      - name: Build Scintilla
+        working-directory: build
+        run: |
+          # build Scintilla
+          xcodebuild -project ../scintilla/cocoa/Scintilla/Scintilla.xcodeproj archive -scheme Scintilla -configuration Release -destination "generic/platform=macOS" -archivePath "archives/scintilla" SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+          # copy framework to here
+          find . -name "Scintilla.framework" -exec cp -R {} . \;
+          # copy modulemap to framework
+          cp ../scintilla/cocoa/Scintilla/module.modulemap Scintilla.framework/Modules/module.modulemap
+          # re-sign framework
+          codesign --force --deep --sign - Scintilla.framework
+
+      - name: Tar framework
+        working-directory: build
+        run: |
+          mkdir dist
+          tar --zstd -cvf dist/Scintilla.framework.tar.zst Scintilla.framework
+
+      - name: Upload framework
+        uses: shallwefootball/s3-upload-action@v1.3.3
+        with:
+          endpoint: ${{ secrets.AWS_ENDPOINT }}
+          aws_bucket: ${{ secrets.AWS_BUCKET }}
+          aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          source_dir: build/dist
+          destination_dir: scintilla/${{ github.sha }}
