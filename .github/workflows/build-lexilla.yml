@@ -16,21 +16,35 @@ jobs:
 
       - name: Xcode Select
         run: |
-          sudo xcode-select -switch /Applications/Xcode_15.0.1.app
+          # find latest Xcode
+          XCODE_PATH=$(find /Applications -maxdepth 1 -type d -name 'Xcode*' | sort -r | head -n 1)
+          echo "Xcode Path: $XCODE_PATH"
+          # set Xcode version
+          sudo xcode-select -switch "$XCODE_PATH"
           echo "Xcode Version: $(xcodebuild -version)"
 
       - name: Build Lexilla
-        working-directory: lexilla/src/Lexilla
+        working-directory: build
         run: |
-          xcodebuild archive -scheme lexilla -configuration Release -destination "generic/platform=macOS" -archivePath "archives/lexilla" SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES DEVELOPMENT_TEAM=""
+          # build target 'liblexilla.dylib' (staticlib actually)
+          xcodebuild -project ../lexilla/src/Lexilla/Lexilla.xcodeproj archive -scheme lexilla -configuration Release -destination "generic/platform=macOS" -archivePath "archives/lexilla" SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES DEVELOPMENT_TEAM="" MACH_O_TYPE=staticlib
+          # copy to 'liblexilla.a'
+          find . -name 'liblexilla.dylib' -exec mv {} ./liblexilla.a \;
+          # make xcframework
+          cp -r ../lexilla/include ./include
+          xcodebuild -create-xcframework -library liblexilla.a -headers include -output Lexilla.xcframework
 
-      - name: Tar Lexilla
-        working-directory: lexilla/src/Lexilla/archives/lexilla.xcarchive/Products/Library/Frameworks
+      - name: Tar xcframework
+        working-directory: build
         run: |
-          tar -cvzf lexilla.tar.gz lexilla.framework
+          tar --zstd -cvf Lexilla.xcframework.tar.zst Lexilla.xcframework
 
-      - name: Upload Lexilla
-        uses: actions/upload-artifact@v2
+      - name: Upload xcframework
+        uses: shallwefootball/s3-upload-action@v1.3.3
         with:
-          name: lexilla
-          path: lexilla/src/Lexilla/archives/lexilla.xcarchive/Products/Library/Frameworks/lexilla.tar.gz
+          endpoint: ${{ secrets.AWS_ENDPOINT }}
+          aws_bucket: ${{ secrets.AWS_BUCKET }}
+          aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          source_dir: build/Lexilla.xcframework.tar.zst
+          destination_dir: lexilla/$GITHUB_SHA/Lexilla.xcframework.tar.zst
