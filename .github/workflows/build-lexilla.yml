@@ -22,6 +22,8 @@ jobs:
           # set Xcode version
           sudo xcode-select -switch "$XCODE_PATH"
           echo "Xcode Version: $(xcodebuild -version)"
+          # make build directory
+          mkdir build
 
       - name: Build Lexilla
         working-directory: build
