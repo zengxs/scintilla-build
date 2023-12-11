@@ -39,7 +39,8 @@ jobs:
       - name: Tar xcframework
         working-directory: build
         run: |
-          tar --zstd -cvf Lexilla.xcframework.tar.zst Lexilla.xcframework
+          mkdir dist
+          tar --zstd -cvf dist/Lexilla.xcframework.tar.zst Lexilla.xcframework
 
       - name: Upload xcframework
         uses: shallwefootball/s3-upload-action@v1.3.3
@@ -48,5 +49,5 @@ jobs:
           aws_bucket: ${{ secrets.AWS_BUCKET }}
           aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          source_dir: build/Lexilla.xcframework.tar.zst
-          destination_dir: lexilla/$GITHUB_SHA/Lexilla.xcframework.tar.zst
+          source_dir: build/dist
+          destination_dir: lexilla/$GITHUB_SHA
